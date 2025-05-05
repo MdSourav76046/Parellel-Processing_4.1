@@ -1,7 +1,7 @@
 /*
     How to run:
-    mpic++ -o search phonebook_search.cpp
-    mpirun -np 4 ./search phonebook1.txt Bob
+    mpic++ -o search phonebook_search.cpp / mpic++ -std=c++11 PhoneBook_Mpi.cpp -o run
+    mpirun -np 4 ./search phonebook1.txt Bob / mpirun -np 4 ./run phonebook1.txt SUMAIA
 */
 
 //Simplified
@@ -63,14 +63,14 @@ struct Contact {
     string phone;
 };
 
-void send_string(const string &text, int receiver) {
+void send_string(const string &text, int receiver) { // This function sends a string to another MPI process.
     int len = text.size() + 1;
     MPI_Send(&len, 1, MPI_INT, receiver, 1, MPI_COMM_WORLD);
     MPI_Send(text.c_str(), len, MPI_CHAR, receiver, 1, MPI_COMM_WORLD);
 }
 
-string receive_string(int sender) {
-    int len;
+string receive_string(int sender) { // This function receives a string from another MPI process.
+    int len; // It first receives the length of the string and then the actual string.
     MPI_Recv(&len, 1, MPI_INT, sender, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     char *buf = new char[len];
     MPI_Recv(buf, len, MPI_CHAR, sender, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
@@ -87,7 +87,7 @@ string vector_to_string(const vector<Contact> &contacts, int start, int end) {
     return result;
 }
 
-vector<Contact> string_to_contacts(const string &text) {
+vector<Contact> string_to_contacts(const string &text) { // Converts a string back into a vector of Contact structures
     vector<Contact> contacts;
     istringstream iss(text);
     string line;

@@ -5,10 +5,10 @@
 // Then to run - mpirun -n 3 ./run  
 
 // Function to print a matrix
-void display(int rows, int cols, int matrix[rows][cols]) {
-    for(int i = 0; i < rows; i++) {
+void display(int rows, int cols, int *matrix) {
+    for (int i = 0; i < rows; i++) {
         for (int j = 0; j < cols; j++) {
-            printf("%3d ", matrix[i][j]);
+            printf("%3d ", matrix[i * cols + j]);
         }
         printf("\n");
     }
@@ -16,13 +16,13 @@ void display(int rows, int cols, int matrix[rows][cols]) {
 }
 
 int main(int argc, char **argv) {
-    MPI_Init(&argc, &argv);
+    MPI_Init(&argc, &argv); // init the process
 
     int rank, size;
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    MPI_Comm_size(MPI_COMM_WORLD, &size);
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank); // get the rank of the process
+    MPI_Comm_size(MPI_COMM_WORLD, &size); // get the size of the process
 
-    int K = 200, M = 50, N = 50, P = 50;
+    int K = 10, M = 3, N = 3, P = 3;
     // if(rank == 0) {
     //     printf("Enter Number of Matrices: ");
     //     scanf("%d", &K);
@@ -34,8 +34,8 @@ int main(int argc, char **argv) {
     //     scanf("%d", &P);
     // }
 
-    MPI_Bcast(&K, 1, MPI_INT, 0, MPI_COMM_WORLD);
-    MPI_Bcast(&M, 1, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Bcast(&K, 1, MPI_INT, 0, MPI_COMM_WORLD); // broadcast from the root (rank == 0) to all processes so everyone has the same configuration:
+    MPI_Bcast(&M, 1, MPI_INT, 0, MPI_COMM_WORLD);// It broadcasts the value of M from the root process (rank 0) to all other processes in the communicator MPI_COMM_WORLD.
     MPI_Bcast(&N, 1, MPI_INT, 0, MPI_COMM_WORLD);
     MPI_Bcast(&P, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
@@ -45,7 +45,7 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    int A[K][M][N], B[K][N][P], R[K][M][P];
+    int A[K][M][N], B[K][N][P], R[K][M][P]; // gets allocated in the root process
 
     // Initialize the matrices in the root process
     if(rank == 0) {
@@ -64,7 +64,10 @@ int main(int argc, char **argv) {
     }    
 
     // Buffer to store portion of the matrices assigned to each process
-    int localA[K / size][M][N], localB[K / size][N][P], localR[K / size][M][P];
+    int localA[K / size][M][N], localB[K / size][N][P], localR[K / size][M][P]; // each processor gets K/size matrices from A and B
+
+    // Scatter matrices to each process
+    // Scatter distributes blocks of data from A and B to localA and localB:
     MPI_Scatter(A, (K / size) * M * N, MPI_INT, localA, (K / size) * M * N, MPI_INT, 0, MPI_COMM_WORLD);
     MPI_Scatter(B, (K / size) * N * P, MPI_INT, localB, (K / size) * N * P, MPI_INT, 0, MPI_COMM_WORLD);
 
@@ -90,12 +93,12 @@ int main(int argc, char **argv) {
 
     // Remove the comment to print result matrices
     //Print all the result matrices
-    // if(rank == 0) {
-    //     for(int k = 0; k < K; k++) {
-    //         printf("Result Matrix R%d\n", k);
-    //         display(M, P, R[k]);
-    //     }
-    // }
+    if(rank == 0) {
+        for(int k = 0; k < K; k++) {
+            printf("Result Matrix R%d\n", k);
+            display(M, P, &R[k][0][0]);
+        }
+    }
 
     // Barrier to synchronize all processes before timing starts
     MPI_Barrier(MPI_COMM_WORLD);
